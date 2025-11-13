@@ -105,6 +105,14 @@ class SpaceComparison {
         this.padding = 100; // 天体間のパディング
         this.baseScale = 1; // 基準スケール（ピクセル/km）
 
+        // ドラッグスクロール用の変数
+        this.isDragging = false;
+        this.startX = 0;
+        this.scrollLeft = 0;
+
+        // 天体のユニークIDカウンター
+        this.bodyCounter = 0;
+
         this.init();
     }
 
@@ -120,13 +128,40 @@ class SpaceComparison {
             }
         });
 
+        // マウスドラッグでスクロール
+        this.container.addEventListener('mousedown', (e) => {
+            this.isDragging = true;
+            this.startX = e.pageX - this.container.offsetLeft;
+            this.scrollLeft = this.container.scrollLeft;
+            this.container.style.cursor = 'grabbing';
+        });
+
+        this.container.addEventListener('mouseleave', () => {
+            this.isDragging = false;
+            this.container.style.cursor = 'grab';
+        });
+
+        this.container.addEventListener('mouseup', () => {
+            this.isDragging = false;
+            this.container.style.cursor = 'grab';
+        });
+
+        this.container.addEventListener('mousemove', (e) => {
+            if (!this.isDragging) return;
+            e.preventDefault();
+            const x = e.pageX - this.container.offsetLeft;
+            const walk = (x - this.startX) * 2; // スクロール速度調整
+            this.container.scrollLeft = this.scrollLeft - walk;
+        });
+
         // 初期状態：地球を表示
         this.reset();
     }
 
     reset() {
+        this.bodyCounter = 0;
         this.displayedBodies = [
-            { id: 'earth', ...celestialBodies.earth }
+            { uniqueId: this.bodyCounter++, id: 'earth', ...celestialBodies.earth }
         ];
         this.render();
         this.updateInfo();
@@ -140,13 +175,8 @@ class SpaceComparison {
             return;
         }
 
-        if (this.displayedBodies.find(b => b.id === selectedId)) {
-            alert('この天体はすでに追加されています');
-            return;
-        }
-
         const body = celestialBodies[selectedId];
-        this.displayedBodies.push({ id: selectedId, ...body });
+        this.displayedBodies.push({ uniqueId: this.bodyCounter++, id: selectedId, ...body });
 
         this.render();
         this.updateInfo();

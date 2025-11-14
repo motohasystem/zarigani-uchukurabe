@@ -6,7 +6,8 @@ const celestialBodies = {
         diameter: 3474,
         color: '#c0c0c0',
         type: '衛星',
-        hiraganaType: 'えいせい'
+        hiraganaType: 'えいせい',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/e1/FullMoon2010.jpg'
     },
     mercury: {
         name: '水星',
@@ -14,7 +15,8 @@ const celestialBodies = {
         diameter: 4879,
         color: '#8c7853',
         type: '惑星',
-        hiraganaType: 'わくせい'
+        hiraganaType: 'わくせい',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d9/Mercury_in_color_-_Prockter07-edit.jpg'
     },
     mars: {
         name: '火星',
@@ -22,7 +24,8 @@ const celestialBodies = {
         diameter: 6779,
         color: '#cd5c5c',
         type: '惑星',
-        hiraganaType: 'わくせい'
+        hiraganaType: 'わくせい',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/02/OSIRIS_Mars_true_color.jpg'
     },
     venus: {
         name: '金星',
@@ -30,7 +33,8 @@ const celestialBodies = {
         diameter: 12104,
         color: '#ffd700',
         type: '惑星',
-        hiraganaType: 'わくせい'
+        hiraganaType: 'わくせい',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/e5/Venus-real_color.jpg'
     },
     earth: {
         name: '地球',
@@ -38,7 +42,8 @@ const celestialBodies = {
         diameter: 12742,
         color: '#4169e1',
         type: '惑星',
-        hiraganaType: 'わくせい'
+        hiraganaType: 'わくせい',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/9/97/The_Earth_seen_from_Apollo_17.jpg'
     },
     neptune: {
         name: '海王星',
@@ -46,7 +51,8 @@ const celestialBodies = {
         diameter: 49528,
         color: '#4169ff',
         type: '惑星',
-        hiraganaType: 'わくせい'
+        hiraganaType: 'わくせい',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/63/Neptune_-_Voyager_2_%2829347980845%29_flatten_crop.jpg'
     },
     uranus: {
         name: '天王星',
@@ -54,7 +60,8 @@ const celestialBodies = {
         diameter: 51118,
         color: '#4fd0e0',
         type: '惑星',
-        hiraganaType: 'わくせい'
+        hiraganaType: 'わくせい',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/3d/Uranus2.jpg'
     },
     saturn: {
         name: '土星',
@@ -62,7 +69,8 @@ const celestialBodies = {
         diameter: 120536,
         color: '#fad5a5',
         type: '惑星',
-        hiraganaType: 'わくせい'
+        hiraganaType: 'わくせい',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/c7/Saturn_during_Equinox.jpg'
     },
     jupiter: {
         name: '木星',
@@ -70,7 +78,8 @@ const celestialBodies = {
         diameter: 142984,
         color: '#daa520',
         type: '惑星',
-        hiraganaType: 'わくせい'
+        hiraganaType: 'わくせい',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/2b/Jupiter_and_its_shrunken_Great_Red_Spot.jpg'
     },
     sun: {
         name: '太陽',
@@ -78,7 +87,8 @@ const celestialBodies = {
         diameter: 1392700,
         color: '#ffcc00',
         type: '恒星',
-        hiraganaType: 'こうせい'
+        hiraganaType: 'こうせい',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/b/b4/The_Sun_by_the_Atmospheric_Imaging_Assembly_of_NASA%27s_Solar_Dynamics_Observatory_-_20100819.jpg'
     },
     betelgeuse: {
         name: 'ベテルギウス',
@@ -86,7 +96,8 @@ const celestialBodies = {
         diameter: 887000000,
         color: '#ff4500',
         type: '赤色超巨星',
-        hiraganaType: 'せきしょくちょうきょせい'
+        hiraganaType: 'せきしょくちょうきょせい',
+        imageUrl: null  // 実際の画像がないため色で描画
     },
     antares: {
         name: 'アンタレス',
@@ -94,7 +105,8 @@ const celestialBodies = {
         diameter: 883000000,
         color: '#ff6347',
         type: '赤色超巨星',
-        hiraganaType: 'せきしょくちょうきょせい'
+        hiraganaType: 'せきしょくちょうきょせい',
+        imageUrl: null
     },
     rigel: {
         name: 'リゲル',
@@ -102,7 +114,8 @@ const celestialBodies = {
         diameter: 109000000,
         color: '#87ceeb',
         type: '青色超巨星',
-        hiraganaType: 'せいしょくちょうきょせい'
+        hiraganaType: 'せいしょくちょうきょせい',
+        imageUrl: null
     },
     aldebaran: {
         name: 'アルデバラン',
@@ -110,7 +123,8 @@ const celestialBodies = {
         diameter: 61400000,
         color: '#ff8c00',
         type: '赤色巨星',
-        hiraganaType: 'せきしょくきょせい'
+        hiraganaType: 'せきしょくきょせい',
+        imageUrl: null
     }
 };
 
@@ -158,7 +172,33 @@ class SpaceComparison {
         // 天体のユニークIDカウンター
         this.bodyCounter = 0;
 
+        // 画像キャッシュ
+        this.imageCache = {};
+        this.loadImages();
+
         this.init();
+    }
+
+    loadImages() {
+        // 各天体の画像を事前に読み込む
+        Object.keys(celestialBodies).forEach(id => {
+            const body = celestialBodies[id];
+            if (body.imageUrl) {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';  // CORS対策
+                img.src = body.imageUrl;
+                img.onload = () => {
+                    this.imageCache[id] = img;
+                    // 画像が読み込まれたら再描画
+                    if (this.displayedBodies.some(b => b.id === id)) {
+                        this.render();
+                    }
+                };
+                img.onerror = () => {
+                    console.warn(`画像の読み込みに失敗しました: ${body.name}`);
+                };
+            }
+        });
     }
 
     updateText() {
@@ -369,7 +409,8 @@ class SpaceComparison {
     }
 
     drawCelestialBody(body) {
-        const { x, y, radius, name, color, diameter, type, pixelDiameter } = body;
+        const { x, y, radius, id, color } = body;
+        const image = this.imageCache[id];
 
         // 影を追加
         this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
@@ -377,25 +418,54 @@ class SpaceComparison {
         this.ctx.shadowOffsetX = 5;
         this.ctx.shadowOffsetY = 5;
 
-        // グラデーションで球体を描画
-        const gradient = this.ctx.createRadialGradient(
-            x - radius * 0.3,
-            y - radius * 0.3,
-            radius * 0.1,
-            x,
-            y,
-            radius
-        );
+        // 画像がある場合は画像を使って描画、ない場合はグラデーション
+        if (image && image.complete) {
+            // 円形にクリップして画像を描画
+            this.ctx.save();
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+            this.ctx.closePath();
+            this.ctx.clip();
 
-        // 明るい部分
-        gradient.addColorStop(0, this.lightenColor(color, 40));
-        gradient.addColorStop(0.7, color);
-        gradient.addColorStop(1, this.darkenColor(color, 30));
+            // 画像を円内に描画
+            this.ctx.drawImage(
+                image,
+                x - radius,
+                y - radius,
+                radius * 2,
+                radius * 2
+            );
 
-        this.ctx.fillStyle = gradient;
-        this.ctx.beginPath();
-        this.ctx.arc(x, y, radius, 0, Math.PI * 2);
-        this.ctx.fill();
+            this.ctx.restore();
+
+            // 円の輪郭を描画（オプション）
+            this.ctx.shadowColor = 'transparent';
+            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+            this.ctx.stroke();
+        } else {
+            // グラデーションで球体を描画（フォールバック）
+            const gradient = this.ctx.createRadialGradient(
+                x - radius * 0.3,
+                y - radius * 0.3,
+                radius * 0.1,
+                x,
+                y,
+                radius
+            );
+
+            // 明るい部分
+            gradient.addColorStop(0, this.lightenColor(color, 40));
+            gradient.addColorStop(0.7, color);
+            gradient.addColorStop(1, this.darkenColor(color, 30));
+
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
 
         // 影をリセット
         this.ctx.shadowColor = 'transparent';

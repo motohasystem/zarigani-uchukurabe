@@ -2,89 +2,124 @@
 const celestialBodies = {
     moon: {
         name: '月',
+        hiraganaName: 'つき',
         diameter: 3474,
         color: '#c0c0c0',
-        type: '衛星'
+        type: '衛星',
+        hiraganaType: 'えいせい'
     },
     mercury: {
         name: '水星',
+        hiraganaName: 'すいせい',
         diameter: 4879,
         color: '#8c7853',
-        type: '惑星'
+        type: '惑星',
+        hiraganaType: 'わくせい'
     },
     mars: {
         name: '火星',
+        hiraganaName: 'かせい',
         diameter: 6779,
         color: '#cd5c5c',
-        type: '惑星'
+        type: '惑星',
+        hiraganaType: 'わくせい'
     },
     venus: {
         name: '金星',
+        hiraganaName: 'きんせい',
         diameter: 12104,
         color: '#ffd700',
-        type: '惑星'
+        type: '惑星',
+        hiraganaType: 'わくせい'
     },
     earth: {
         name: '地球',
+        hiraganaName: 'ちきゅう',
         diameter: 12742,
         color: '#4169e1',
-        type: '惑星'
+        type: '惑星',
+        hiraganaType: 'わくせい'
     },
     neptune: {
         name: '海王星',
+        hiraganaName: 'かいおうせい',
         diameter: 49528,
         color: '#4169ff',
-        type: '惑星'
+        type: '惑星',
+        hiraganaType: 'わくせい'
     },
     uranus: {
         name: '天王星',
+        hiraganaName: 'てんのうせい',
         diameter: 51118,
         color: '#4fd0e0',
-        type: '惑星'
+        type: '惑星',
+        hiraganaType: 'わくせい'
     },
     saturn: {
         name: '土星',
+        hiraganaName: 'どせい',
         diameter: 120536,
         color: '#fad5a5',
-        type: '惑星'
+        type: '惑星',
+        hiraganaType: 'わくせい'
     },
     jupiter: {
         name: '木星',
+        hiraganaName: 'もくせい',
         diameter: 142984,
         color: '#daa520',
-        type: '惑星'
+        type: '惑星',
+        hiraganaType: 'わくせい'
     },
     sun: {
         name: '太陽',
+        hiraganaName: 'たいよう',
         diameter: 1392700,
         color: '#ffcc00',
-        type: '恒星'
+        type: '恒星',
+        hiraganaType: 'こうせい'
     },
     betelgeuse: {
         name: 'ベテルギウス',
+        hiraganaName: 'べてるぎうす',
         diameter: 887000000,
         color: '#ff4500',
-        type: '赤色超巨星'
+        type: '赤色超巨星',
+        hiraganaType: 'せきしょくちょうきょせい'
     },
     antares: {
         name: 'アンタレス',
+        hiraganaName: 'あんたれす',
         diameter: 883000000,
         color: '#ff6347',
-        type: '赤色超巨星'
+        type: '赤色超巨星',
+        hiraganaType: 'せきしょくちょうきょせい'
     },
     rigel: {
         name: 'リゲル',
+        hiraganaName: 'りげる',
         diameter: 109000000,
         color: '#87ceeb',
-        type: '青色超巨星'
+        type: '青色超巨星',
+        hiraganaType: 'せいしょくちょうきょせい'
     },
     aldebaran: {
         name: 'アルデバラン',
+        hiraganaName: 'あるでばらん',
         diameter: 61400000,
         color: '#ff8c00',
-        type: '赤色巨星'
+        type: '赤色巨星',
+        hiraganaType: 'せきしょくきょせい'
     }
 };
+
+// 天体の表示順序
+const celestialOrder = [
+    'moon', 'mercury', 'mars', 'venus', 'earth',
+    'neptune', 'uranus', 'saturn', 'jupiter', 'sun',
+    'betelgeuse', 'antares', 'rigel', 'aldebaran'
+];
 
 // アプリケーション状態
 class SpaceComparison {
@@ -93,13 +128,23 @@ class SpaceComparison {
         this.ctx = this.canvas.getContext('2d');
         this.container = document.getElementById('canvas-container');
         this.selectElement = document.getElementById('celestial-select');
+        this.selectLabel = document.getElementById('select-label');
         this.addButton = document.getElementById('add-button');
         this.resetButton = document.getElementById('reset-button');
         this.scaleValue = document.getElementById('scale-value');
         this.countValue = document.getElementById('count-value');
+        this.scaleLabel = document.getElementById('scale-label');
+        this.countLabel = document.getElementById('count-label');
+        this.mainTitle = document.getElementById('main-title');
+        this.subtitle = document.getElementById('subtitle');
+        this.kanjiModeRadio = document.getElementById('kanji-mode');
+        this.hiraganaModeRadio = document.getElementById('hiragana-mode');
 
         // 表示中の天体リスト
         this.displayedBodies = [];
+
+        // 表示モード（false: 漢字, true: ひらがな）
+        this.isHiraganaMode = false;
 
         // キャンバスの設定
         this.padding = 100; // 天体間のパディング
@@ -116,10 +161,85 @@ class SpaceComparison {
         this.init();
     }
 
+    updateText() {
+        // タイトルと説明を更新
+        if (this.isHiraganaMode) {
+            this.mainTitle.textContent = 'うちゅうくらべ';
+            this.subtitle.textContent = 'てんたいのおおきさをくらべてみよう！';
+            this.scaleLabel.textContent = 'しゅくしゃく';
+            this.countLabel.textContent = 'ひょうじちゅうのてんたい';
+            this.addButton.textContent = 'ついか';
+            this.resetButton.textContent = 'りせっと';
+        } else {
+            this.mainTitle.textContent = 'ウチュークラベ';
+            this.subtitle.textContent = '天体のサイズを比較してみよう！';
+            this.scaleLabel.textContent = '縮尺';
+            this.countLabel.textContent = '表示中の天体';
+            this.addButton.textContent = '追加';
+            this.resetButton.textContent = 'リセット';
+        }
+    }
+
+    updateDropdown() {
+        // プレースホルダー以外のオプションを削除
+        while (this.selectElement.options.length > 1) {
+            this.selectElement.remove(1);
+        }
+
+        // プレースホルダーを更新
+        this.selectElement.options[0].text = this.isHiraganaMode
+            ? '-- てんたいをえらんでください --'
+            : '-- 天体を選んでください --';
+
+        // ラベルを更新
+        this.selectLabel.textContent = this.isHiraganaMode
+            ? 'てんたいをせんたく:'
+            : '天体を選択:';
+
+        // 天体のオプションを追加
+        celestialOrder.forEach(id => {
+            const body = celestialBodies[id];
+            const option = document.createElement('option');
+            option.value = id;
+
+            if (this.isHiraganaMode) {
+                // ひらがなモード
+                option.text = `${body.hiraganaName}（${body.hiraganaType}）`;
+            } else {
+                // 漢字モード
+                option.text = body.name;
+                // 恒星の場合は種別を表示
+                if (body.type.includes('星')) {
+                    option.text += `（${body.type}）`;
+                }
+            }
+
+            this.selectElement.add(option);
+        });
+    }
+
     init() {
+        // ドロップダウンとテキストを初期化
+        this.updateDropdown();
+        this.updateText();
+
         // イベントリスナーの設定
         this.addButton.addEventListener('click', () => this.addCelestialBody());
         this.resetButton.addEventListener('click', () => this.reset());
+
+        // ラジオボタンの変更イベント
+        this.kanjiModeRadio.addEventListener('change', () => {
+            this.isHiraganaMode = false;
+            this.updateText();
+            this.updateDropdown();
+            this.render();
+        });
+        this.hiraganaModeRadio.addEventListener('change', () => {
+            this.isHiraganaMode = true;
+            this.updateText();
+            this.updateDropdown();
+            this.render();
+        });
 
         // Enterキーでも追加できるように
         this.selectElement.addEventListener('keydown', (e) => {
@@ -288,7 +408,7 @@ class SpaceComparison {
     }
 
     drawLabel(body) {
-        const { x, y, radius, name, diameter, type } = body;
+        const { x, y, radius, name, hiraganaName, diameter, type, hiraganaType } = body;
 
         // ラベルの位置（天体の下）
         const labelY = y + radius + 30;
@@ -302,9 +422,11 @@ class SpaceComparison {
         const fontSize = Math.min(16, Math.max(12, radius / 5));
         this.ctx.font = `bold ${fontSize}px sans-serif`;
 
-        const nameText = name;
-        const diameterText = `直径: ${diameter.toLocaleString()} km`;
-        const typeText = type;
+        const nameText = this.isHiraganaMode ? hiraganaName : name;
+        const diameterText = this.isHiraganaMode
+            ? `ちょっけい: ${diameter.toLocaleString()} km`
+            : `直径: ${diameter.toLocaleString()} km`;
+        const typeText = this.isHiraganaMode ? hiraganaType : type;
 
         const nameWidth = this.ctx.measureText(nameText).width;
         const diameterWidth = this.ctx.measureText(diameterText).width;

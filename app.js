@@ -70,7 +70,8 @@ const celestialBodies = {
         color: '#fad5a5',
         type: '惑星',
         hiraganaType: 'わくせい',
-        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/c7/Saturn_during_Equinox.jpg'
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/c7/Saturn_during_Equinox.jpg',
+        imageRotation: 90  // 画像が横長のため90度回転
     },
     jupiter: {
         name: '木星',
@@ -377,12 +378,28 @@ class SpaceComparison {
 
             canvasWidth += pixelDiameter + this.padding;
 
+            // 直前の天体との比較情報を計算
+            let comparison = null;
+            if (index > 0) {
+                const prevBody = this.displayedBodies[index - 1];
+                const diameterRatio = body.diameter / prevBody.diameter;
+                const volumeRatio = Math.pow(diameterRatio, 3);
+                comparison = {
+                    diameterRatio,
+                    volumeRatio,
+                    prevName: prevBody.name,
+                    prevHiraganaName: prevBody.hiraganaName
+                };
+            }
+
             return {
                 ...body,
                 x,
                 y,
                 radius,
-                pixelDiameter
+                pixelDiameter,
+                index,
+                comparison
             };
         });
 
@@ -409,7 +426,7 @@ class SpaceComparison {
     }
 
     drawCelestialBody(body) {
-        const { x, y, radius, id, color } = body;
+        const { x, y, radius, id, color, imageRotation } = body;
         const image = this.imageCache[id];
 
         // 影を追加
@@ -420,31 +437,30 @@ class SpaceComparison {
 
         // 画像がある場合は画像を使って描画、ない場合はグラデーション
         if (image && image.complete) {
-            // 円形にクリップして画像を描画
             this.ctx.save();
-            this.ctx.beginPath();
-            this.ctx.arc(x, y, radius, 0, Math.PI * 2);
-            this.ctx.closePath();
-            this.ctx.clip();
 
-            // 画像を円内に描画
+            // 画像のアスペクト比を維持して、高さを円の直径に合わせる
+            const imgAspect = image.width / image.height;
+            let drawWidth, drawHeight;
+
+            // 高さを円の直径に合わせ、幅はアスペクト比に従う
+            drawHeight = radius * 2;
+            drawWidth = drawHeight * imgAspect;
+
+            // 回転が指定されている場合は回転を適用
+            this.ctx.translate(x, y);
+            if (imageRotation) {
+                this.ctx.rotate(imageRotation * Math.PI / 180);
+            }
             this.ctx.drawImage(
                 image,
-                x - radius,
-                y - radius,
-                radius * 2,
-                radius * 2
+                -drawWidth / 2,
+                -drawHeight / 2,
+                drawWidth,
+                drawHeight
             );
 
             this.ctx.restore();
-
-            // 円の輪郭を描画（オプション）
-            this.ctx.shadowColor = 'transparent';
-            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-            this.ctx.lineWidth = 2;
-            this.ctx.beginPath();
-            this.ctx.arc(x, y, radius, 0, Math.PI * 2);
-            this.ctx.stroke();
         } else {
             // グラデーションで球体を描画（フォールバック）
             const gradient = this.ctx.createRadialGradient(
@@ -498,11 +514,16 @@ class SpaceComparison {
             : `直径: ${diameter.toLocaleString()} km`;
         const typeText = this.isHiraganaMode ? hiraganaType : type;
 
+        // テキスト幅を計算
         const nameWidth = this.ctx.measureText(nameText).width;
         const diameterWidth = this.ctx.measureText(diameterText).width;
         const typeWidth = this.ctx.measureText(typeText).width;
+
+        this.ctx.font = `${fontSize - 2}px sans-serif`;
+
         const maxWidth = Math.max(nameWidth, diameterWidth, typeWidth);
 
+        // ボックスのサイズを計算
         const boxWidth = maxWidth + padding * 2;
         const boxHeight = fontSize * 3.5 + padding * 2;
 
@@ -510,16 +531,25 @@ class SpaceComparison {
         this.ctx.strokeRect(x - boxWidth / 2, labelY, boxWidth, boxHeight);
 
         // テキスト
-        this.ctx.fillStyle = '#ffffff';
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'top';
+        let currentY = labelY + padding;
 
-        this.ctx.fillText(nameText, x, labelY + padding);
+        // 名前
+        this.ctx.font = `bold ${fontSize}px sans-serif`;
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.fillText(nameText, x, currentY);
+        currentY += fontSize * 1.2;
+
+        // 直径
         this.ctx.font = `${fontSize - 2}px sans-serif`;
         this.ctx.fillStyle = '#cccccc';
-        this.ctx.fillText(diameterText, x, labelY + padding + fontSize + 2);
+        this.ctx.fillText(diameterText, x, currentY);
+        currentY += fontSize * 1.2;
+
+        // 種別
         this.ctx.fillStyle = '#4a90e2';
-        this.ctx.fillText(typeText, x, labelY + padding + fontSize * 2 + 4);
+        this.ctx.fillText(typeText, x, currentY);
     }
 
     drawConnectionLine(body1, body2) {
@@ -527,6 +557,7 @@ class SpaceComparison {
         const x2 = body2.x - body2.radius;
         const y = body1.y;
 
+        // 接続線を描画
         this.ctx.strokeStyle = 'rgba(74, 144, 226, 0.3)';
         this.ctx.lineWidth = 2;
         this.ctx.setLineDash([5, 5]);
@@ -535,6 +566,52 @@ class SpaceComparison {
         this.ctx.lineTo(x2, y);
         this.ctx.stroke();
         this.ctx.setLineDash([]);
+
+        // 比較情報を線の上に表示
+        if (body2.comparison) {
+            const centerX = (x1 + x2) / 2;
+            const centerY = y - 40;  // 線の上に表示
+
+            const comparison = body2.comparison;
+
+            // テキストを作成（絵文字と掛け算記号で表現、5桁以上は指数表示）
+            const diameterRatioStr = this.formatRatio(comparison.diameterRatio, 2);
+            const volumeRatioStr = this.formatRatio(comparison.volumeRatio, 1);
+            const diameterText = `📏 × ${diameterRatioStr}`;
+            const volumeText = `🧊 × ${volumeRatioStr}`;
+
+            // フォントサイズ
+            const fontSize = 16;
+            this.ctx.font = `bold ${fontSize}px sans-serif`;
+
+            // テキスト幅を計算
+            const diameterWidth = this.ctx.measureText(diameterText).width;
+            const volumeWidth = this.ctx.measureText(volumeText).width;
+            const maxWidth = Math.max(diameterWidth, volumeWidth);
+
+            // 背景ボックスを描画
+            const padding = 8;
+            const boxWidth = maxWidth + padding * 2;
+            const boxHeight = fontSize * 2.5 + padding * 2;
+
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            this.ctx.strokeStyle = '#f39c12';
+            this.ctx.lineWidth = 2;
+            this.ctx.fillRect(centerX - boxWidth / 2, centerY - boxHeight / 2, boxWidth, boxHeight);
+            this.ctx.strokeRect(centerX - boxWidth / 2, centerY - boxHeight / 2, boxWidth, boxHeight);
+
+            // テキストを描画
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+
+            // 直径倍率
+            this.ctx.fillStyle = '#f39c12';
+            this.ctx.fillText(diameterText, centerX, centerY - fontSize * 0.6);
+
+            // 体積倍率
+            this.ctx.fillStyle = '#e74c3c';
+            this.ctx.fillText(volumeText, centerX, centerY + fontSize * 0.6);
+        }
     }
 
     scrollToLastBody() {
@@ -563,6 +640,57 @@ class SpaceComparison {
 
         // 天体数を更新
         this.countValue.textContent = this.displayedBodies.length;
+    }
+
+    // ユーティリティ関数：小数を分数に変換
+    decimalToFraction(decimal) {
+        // 最大分母を20に制限して、よく使われる分数を見つける
+        const maxDenominator = 20;
+        let bestNumerator = 1;
+        let bestDenominator = 1;
+        let minError = Math.abs(decimal - 1);
+
+        for (let denominator = 1; denominator <= maxDenominator; denominator++) {
+            const numerator = Math.round(decimal * denominator);
+            const value = numerator / denominator;
+            const error = Math.abs(decimal - value);
+
+            if (error < minError) {
+                minError = error;
+                bestNumerator = numerator;
+                bestDenominator = denominator;
+            }
+        }
+
+        // 分子と分母を最大公約数で約分
+        const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
+        const divisor = gcd(bestNumerator, bestDenominator);
+        bestNumerator /= divisor;
+        bestDenominator /= divisor;
+
+        return `${bestNumerator}/${bestDenominator}`;
+    }
+
+    // ユーティリティ関数：倍率を表示用にフォーマット
+    formatRatio(ratio, decimals = 2) {
+        if (ratio < 1) {
+            // 1未満の場合は分数表示
+            return this.decimalToFraction(ratio);
+        } else if (ratio >= 10000) {
+            // 5桁以上の場合は指数表示
+            const exponent = Math.floor(Math.log10(ratio));
+            const mantissa = ratio / Math.pow(10, exponent);
+            // 上付き文字を使用
+            const superscriptMap = {
+                '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+                '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'
+            };
+            const expStr = exponent.toString().split('').map(d => superscriptMap[d]).join('');
+            return `${mantissa.toFixed(1)} × 10${expStr}`;
+        } else {
+            // 1以上10000未満の場合は通常表示
+            return ratio.toFixed(decimals);
+        }
     }
 
     // ユーティリティ関数：色を明るくする
